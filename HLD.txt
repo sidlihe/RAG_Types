@@ -1,0 +1,12 @@
+adv_langchain/
+├── .env
+├── app.py                  <-- Entry point (Gradio UI)
+├── data/                   <-- Stores PDFs and ChromaDB
+├── logs/                   <-- Log files
+├── src/
+│   ├── __init__.py         <-- Makes src a package (create empty file)
+│   ├── config.py           <-- Environment & Settings
+│   ├── utils.py            <-- Logging logic
+│   ├── ingestion.py        <-- PDF Loading & Chunking
+│   └── rag_engine.py       <-- VectorStore, Hybrid Search, Reranking, Chain
+└── requirements.txt
