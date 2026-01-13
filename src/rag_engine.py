@@ -59,7 +59,7 @@ class RAGPipeline:
         self.query_optimizer = QueryOptimizer(api_key=self.api_key)
         
         # Evaluator
-        self.evaluator = RAGEvaluator(llm=self.llm)
+        self.evaluator = RAGEvaluator(llm=self.llm, embeddings=self.embeddings)
         
         # State
         self.vectorstore = None
@@ -376,19 +376,31 @@ Answer:"""
     
     def _generate_comparison_summary(self, results: Dict[str, Any]) -> str:
         """Generate human-readable comparison summary"""
-        lines = ["=== Strategy Comparison ===\n"]
+        lines = ["# ⚖️ Strategy Comparison Report\n"]
         
-        for strategy, result in results.items():
-            lines.append(f"Strategy: {strategy}")
-            lines.append(f"  Latency: {result['latency_ms']:.0f}ms")
+        # Sort strategies by latency by default
+        sorted_strategies = sorted(results.keys(), key=lambda x: results[x].get('latency_ms', 999999))
+        
+        for strategy in sorted_strategies:
+            result = results[strategy]
+            lines.append(f"### Strategy: **{strategy}**")
+            lines.append(f"- ⏱️ **Latency:** {result['latency_ms']:.0f}ms")
+            lines.append(f"- 📚 **Contexts Retrieved:** {result['num_contexts']}")
             
             if "evaluation" in result:
                 eval_data = result["evaluation"]
-                if eval_data.get("faithfulness"):
-                    lines.append(f"  Faithfulness: {eval_data['faithfulness']:.3f}")
-                if eval_data.get("answer_relevancy"):
-                    lines.append(f"  Relevancy: {eval_data['answer_relevancy']:.3f}")
+                metrics_lines = []
+                if eval_data.get("faithfulness") is not None:
+                    metrics_lines.append(f"✅ Faithfulness: {eval_data['faithfulness']:.3f}")
+                if eval_data.get("answer_relevancy") is not None:
+                    metrics_lines.append(f"🎯 Relevancy: {eval_data['answer_relevancy']:.3f}")
+                if eval_data.get("context_precision") is not None:
+                    metrics_lines.append(f"📍 Precision: {eval_data['context_precision']:.3f}")
+                
+                if metrics_lines:
+                    lines.append("- 📈 **Metrics:** " + " | ".join(metrics_lines))
             
-            lines.append("")
+            lines.append(f"\n**Answer Preview:**\n{result['answer'][:300]}...")
+            lines.append("\n" + "─" * 40 + "\n")
         
         return "\n".join(lines)

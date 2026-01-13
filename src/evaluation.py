@@ -1,3 +1,4 @@
+#src/evaluation.py
 """
 Comprehensive Evaluation Module for RAG Systems
 
@@ -22,8 +23,9 @@ try:
         answer_relevancy,
         context_precision,
         context_recall,
-        answer_correctness
     )
+    from ragas.llms import LangchainLLMWrapper
+    from ragas.embeddings import LangchainEmbeddingsWrapper
     from datasets import Dataset
     RAGAS_AVAILABLE = True
 except ImportError:
@@ -99,8 +101,9 @@ class EvaluationResult:
 class RAGEvaluator:
     """Main evaluation class for RAG systems"""
     
-    def __init__(self, llm=None):
+    def __init__(self, llm=None, embeddings=None):
         self.llm = llm
+        self.embeddings = embeddings
         self._ensure_nltk_data()
     
     def _ensure_nltk_data(self):
@@ -137,6 +140,12 @@ class RAGEvaluator:
             return {}
         
         try:
+            # Select metrics based on available data
+            # faithfulness and answer_relevancy are usually fine without ground_truth
+            # context_precision and context_recall usually REQUIRE ground_truth/reference in newer RAGAS versions
+            
+            selected_metrics = [faithfulness, answer_relevancy]
+            
             # Prepare dataset
             data = {
                 "question": [question],
@@ -146,23 +155,50 @@ class RAGEvaluator:
             
             if ground_truth:
                 data["ground_truth"] = [ground_truth]
+                # In some versions of ragas, 'reference' is the expected column name
+                data["reference"] = [ground_truth]
+                selected_metrics.append(context_precision)
+                selected_metrics.append(context_recall)
+                logger.info("Ground truth provided → including context_precision & context_recall")
+            else:
+                # If no ground truth, we can only do metrics that don't need it
+                logger.warning("No ground truth provided. Skipping context_precision and context_recall.")
             
             dataset = Dataset.from_dict(data)
             
-            # Select metrics based on available data
-            metrics = [faithfulness, answer_relevancy, context_precision]
-            if ground_truth:
-                metrics.append(context_recall)
+            # Evaluate with custom models to avoid OpenAI dependency
+            logger.info(f"Running RAGAS evaluation with metrics: {[m.name for m in selected_metrics]}...")
             
-            # Evaluate
-            logger.info("Running RAGAS evaluation...")
-            result = evaluate(dataset, metrics=metrics, llm=self.llm)
+            # Wrap models for Ragas
+            ragas_llm = LangchainLLMWrapper(self.llm) if self.llm else None
+            ragas_embeddings = LangchainEmbeddingsWrapper(self.embeddings) if self.embeddings else None
+            
+            result = evaluate(
+                dataset, 
+                metrics=selected_metrics, 
+                llm=ragas_llm,
+                embeddings=ragas_embeddings
+            )
+            
+            # Extract results safely - in RAGAS 0.4.2, result is an EvaluationResult object
+            # It usually has a .scores attribute which is a list of results per row
+            try:
+                if hasattr(result, "scores") and len(result.scores) > 0:
+                    scores_dict = result.scores[0]
+                elif hasattr(result, "to_dict"):
+                    scores_dict = result.to_dict()
+                else:
+                    # Fallback to items() if it behaves like a dict
+                    scores_dict = dict(result.items())
+            except Exception as e:
+                logger.warning(f"Standard indexing failed, trying direct access: {e}")
+                scores_dict = result
             
             return {
-                "faithfulness": result.get("faithfulness", 0.0),
-                "answer_relevancy": result.get("answer_relevancy", 0.0),
-                "context_precision": result.get("context_precision", 0.0),
-                "context_recall": result.get("context_recall", 0.0) if ground_truth else None
+                "faithfulness": scores_dict.get("faithfulness", 0.0) if isinstance(scores_dict, dict) else getattr(scores_dict, "faithfulness", 0.0),
+                "answer_relevancy": scores_dict.get("answer_relevancy", 0.0) if isinstance(scores_dict, dict) else getattr(scores_dict, "answer_relevancy", 0.0),
+                "context_precision": (scores_dict.get("context_precision") if isinstance(scores_dict, dict) else getattr(scores_dict, "context_precision", None)) if ground_truth else None,
+                "context_recall": (scores_dict.get("context_recall") if isinstance(scores_dict, dict) else getattr(scores_dict, "context_recall", None)) if ground_truth else None
             }
         
         except Exception as e:
@@ -446,3 +482,5 @@ class EvaluationBenchmark:
                 report.append(f"{metric}: {avg:.3f} (±{std:.3f})")
         
         return "\n".join(report)
+if __name__ == "__main__":
+    main()

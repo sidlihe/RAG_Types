@@ -288,12 +288,12 @@ with gr.Blocks(title="Advanced RAG System") as demo:
                             ),
                             gr.Checkbox(
                                 label="📊 Enable Evaluation",
-                                value=False,
+                                value=True,
                                 info="Calculate RAGAS metrics (slower)"
                             )
                         ],
                         examples=[
-                            ["What is the main summary?", "hybrid_rerank", False]
+                            ["What is the main summary?", "hybrid_rerank", True]
                             # ["List the key skills mentioned.", "hybrid_rerank", False],
                             # ["What is the educational background?", "hybrid_rerank", False],
                             # ["Summarize the work experience.", "hybrid_rerank", False]

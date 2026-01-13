@@ -16,6 +16,7 @@ from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever, ParentDocumentRetriever
 from langchain_classic.retrievers import ContextualCompressionRetriever, MultiQueryRetriever
+from langchain_core.retrievers import BaseRetriever as LangChainBaseRetriever
 from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -239,16 +240,22 @@ class HyDERetriever(BaseRetriever):
         )
 
 
-class HyDERetrieverWrapper:
+class HyDERetrieverWrapper(LangChainBaseRetriever):
     """Wrapper that implements HyDE retrieval logic"""
     
-    def __init__(self, base_retriever, llm, vectorstore, k: int):
-        self.base_retriever = base_retriever
-        self.llm = llm
-        self.vectorstore = vectorstore
-        self.k = k
+    base_retriever: Any
+    llm: Any
+    vectorstore: Any
+    k: int
     
-    def get_relevant_documents(self, query: str) -> List[Document]:
+    def __init__(self, base_retriever, llm, vectorstore, k: int, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, "base_retriever", base_retriever)
+        object.__setattr__(self, "llm", llm)
+        object.__setattr__(self, "vectorstore", vectorstore)
+        object.__setattr__(self, "k", k)
+    
+    def _get_relevant_documents(self, query: str) -> List[Document]:
         """Generate hypothetical document and search"""
         
         # Generate hypothetical answer
@@ -272,10 +279,6 @@ Hypothetical Answer:"""
         except Exception as e:
             logger.warning(f"HyDE generation failed, falling back to standard search: {e}")
             return self.base_retriever.get_relevant_documents(query)
-    
-    async def aget_relevant_documents(self, query: str) -> List[Document]:
-        """Async version"""
-        return self.get_relevant_documents(query)
 
 
 class RetrievalStrategyFactory:
