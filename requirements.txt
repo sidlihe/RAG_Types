@@ -1,4 +1,46 @@
-langchain
-openai
-huggingface_hub
-langchain_google_genai
+# Core LangChain
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-huggingface>=0.1.0
+
+# Embeddings & Models
+sentence-transformers>=2.2.0
+huggingface-hub>=0.20.0
+transformers>=4.36.0
+
+# Vector Stores
+chromadb>=0.4.0
+faiss-cpu>=1.7.4
+
+# Document Processing
+pypdf>=3.17.0
+python-docx>=1.1.0
+unstructured>=0.11.0
+
+# Text Processing
+nltk>=3.8.0
+spacy>=3.7.0
+rank-bm25>=0.2.2
+
+# Evaluation Metrics
+ragas>=0.1.0
+rouge-score>=0.1.2
+bert-score>=0.3.13
+
+# UI
+gradio>=6.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+numpy>=1.24.0
+pandas>=2.0.0
+tqdm>=4.66.0
+
+# Monitoring & Logging
+loguru>=0.7.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

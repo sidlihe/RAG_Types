@@ -165,8 +165,6 @@ class HybridSearchPipeline:
         logger.info("Setting up Gemini 2.0 Flash LLM Chain...")
         
         try:
-            # Initialize Gemini 2.0 Flash (Experimental)
-            # Using gemini-2.0-flash-exp for latest features and performance
             self.llm = ChatGoogleGenerativeAI(
                 model=model_name,
                 temperature=0.2,  # Lower temperature for more factual responses
@@ -223,7 +221,6 @@ class HybridSearchPipeline:
 # --- Execution Block ---
 if __name__ == "__main__":
     # Path to your PDF
-    # Ensure this path is correct
     pdf_path = r"Siddhesh_Lihe.pdf"
     
     # Initialize Pipeline
